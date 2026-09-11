@@ -1,9 +1,9 @@
 # NIDS – Network Intrusion Detection System (watsonx Orchestrate)
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://nidsknjvufpublsblzwaupmgypx.streamlit.app/)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://nidsagent.streamlit.app/)
 [![IBM watsonx.ai](https://img.shields.io/badge/Powered%20By-IBM%20watsonx.ai-blue.svg)](https://www.ibm.com/products/watsonx-ai)
 
-> 🚀 **Live Interactive Demo:** [https://nidsknjvufpublsblzwaupmgypx.streamlit.app/](https://nidsknjvufpublsblzwaupmgypx.streamlit.app/)
+> 🚀 **Live Interactive Demo:** [https://nidsagent.streamlit.app/](https://nidsagent.streamlit.app/)
 
 ## Overview
 
