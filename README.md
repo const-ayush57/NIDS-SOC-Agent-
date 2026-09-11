@@ -61,58 +61,70 @@ flowchart TD
 
 ---
 
+## End-to-End Architecture Blueprint
+
+![NIDS SOC Agent Architecture Blueprint](./nids-soc-agent-architecture-blueprint.svg)
+
+---
+
 ## Project Structure
 
 ```
 NIDS/
-├── __init__.py
+├── .env.example                  # Environment variables template
+├── .gitignore                    # Git ignore rules
+├── requirements.txt              # Project Python dependencies
+├── app.py                        # Streamlit web chat UI
 ├── main_flow.py                  # Programmatic test harness
 ├── import-all.sh                 # CLI import script
+├── nids-soc-agent-architecture-blueprint.svg # Vector architecture blueprint
 ├── README.md
 │
 ├── tools/
 │   ├── __init__.py
-│   └── nids_classifier.py        # @tool – classify_network_packet
+│   ├── nids_classifier.py        # @tool – classify_network_packet (AutoAI)
+│   ├── threat_intel_rag.py       # @tool – get_threat_intel (MITRE ATT&CK)
+│   ├── firewall_mitigation.py    # @tool – generate_firewall_mitigation (iptables)
+│   └── policy_guard.py           # @tool – validate_safety_policy (Guardian Agent)
 │
 ├── flows/
 │   ├── __init__.py
-│   └── soc_investigation_flow.py # @flow – soc_investigation_flow
+│   └── soc_investigation_flow.py # @flow – soc_investigation_flow (v2 end-to-end pipeline)
 │
 ├── agents/
-│   └── nids_agent.yaml           # Native agent configuration
+│   └── nids_agent.yaml           # watsonx Orchestrate Native Agent definition
 │
 └── generated/
-    └── soc_investigation_flow.json  # Compiled flow spec (auto-generated)
+    └── soc_investigation_flow.json # Compiled flow spec
 ```
 
 ---
 
-## Tools & Flows
+## Tools & Pipeline Stages
 
-### `classify_network_packet` (Python Tool)
+### 1. `classify_network_packet` (Python Tool)
+Accepts 5 connection metrics and maps them to 41 NSL-KDD features for the deployed IBM Watson AutoAI classifier.
+- **Inputs:** `duration`, `src_bytes`, `dst_bytes`, `count`, `srv_count`
+- **Output:** `ClassificationResult` (`threat_detected`, `threat_level`, `attack_type`, `confidence_score`, `summary`, `recommendations`)
 
-Accepts five NSL-KDD-style packet metrics and returns a [`ClassificationResult`](tools/nids_classifier.py).
+### 2. `get_threat_intel` (Threat Intelligence RAG Tool)
+Queries the MITRE ATT&CK Knowledge Base and enriches findings with watsonx.ai Llama-3 elaboration.
+- **Inputs:** `threat_classification` (e.g., "DoS", "Probe", "R2L", "U2R", "Normal")
+- **Output:** `ThreatIntelResult` (`tactic`, `technique_id`, `technique_name`, `mitigations[]`, `detection_tips`, `soc_priority`, `llm_elaboration`)
 
-| Parameter   | Type    | Description |
-|-------------|---------|-------------|
-| `duration`  | `float` | Connection length in seconds |
-| `src_bytes` | `int`   | Bytes from source → destination |
-| `dst_bytes` | `int`   | Bytes from destination → source |
-| `count`     | `int`   | Connections to same host / 2 s |
-| `srv_count` | `int`   | Connections to same service / 2 s |
+### 3. `generate_firewall_mitigation` (Firewall Rule Tool)
+Generates deterministic Linux `iptables` rules to isolate or rate-limit attack traffic.
+- **Inputs:** `attack_type`, `source_ip`
+- **Output:** `FirewallMitigationResult` (`iptables_script`, `rule_applied`, `explanation`)
 
-**Output fields:** `threat_detected`, `threat_level`, `attack_type`, `confidence_score`, `summary`, `recommendations`
+### 4. `validate_safety_policy` (Guardian Policy Tool)
+Validates firewall rules against enterprise safety policies to prevent accidental blacklisting of critical subnets (e.g., `10.0.0.0/8`, `192.168.0.0/16`, `127.0.0.1`, gateways).
+- **Inputs:** `firewall_script`
+- **Output:** `PolicyGuardResult` (`passed`, `violation_reason`, `validated_script`, `offending_ips`)
 
----
-
-### `soc_investigation_flow` (Flow Tool)
-
-Full SOC investigation in two steps:
-
-1. **Classify** – invokes `classify_network_packet`
-2. **Report** – LLM prompt node generates a `SOCInvestigationReport`
-
-**Output fields:** `executive_summary`, `threat_assessment`, `ioc_analysis`, `mitigation_steps`, `escalation_required`, `ticket_priority`
+### 5. `soc_investigation_flow` (Flow Tool)
+Chains all 4 tools in sequence and synthesises results via an LLM prompt node into a structured `SafeIncidentReport`.
+- **Output fields:** `incident_id`, `executive_summary`, `threat_classification`, `threat_level`, `mitre_tactic`, `mitre_technique`, `mitre_mitigations_summary`, `firewall_action`, `firewall_policy_passed`, `escalation_required`, `ticket_priority`, `analyst_notes`
 
 ---
 
