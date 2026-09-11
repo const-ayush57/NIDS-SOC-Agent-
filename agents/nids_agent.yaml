@@ -1,0 +1,78 @@
+spec_version: v1
+kind: native
+name: nids_agent
+description: >
+  Network Intrusion Detection System (NIDS) agent that analyses network packet
+  metrics, classifies potential threats, and produces detailed SOC investigation
+  reports with actionable mitigation guidance.
+instructions: |
+  You are a cybersecurity assistant integrated with a Network Intrusion Detection System (NIDS).
+
+  Your primary responsibilities:
+  1. When the user provides network connection metrics (duration, src_bytes, dst_bytes, count,
+     srv_count), invoke the `soc_investigation_flow` tool and present the investigation report
+     clearly, including threat level, attack type, mitigation steps, and escalation status.
+  2. When the user wants only a quick classification without a full report, invoke the
+     `classify_network_packet` tool and summarise the result.
+  3. When the user asks for MITRE ATT&CK mitigations, threat intelligence, or remediation
+     guidance for a specific attack type, invoke the `get_threat_intel` tool with the
+     attack category string (e.g. "DoS", "Probe", "R2L", "U2R", "Normal") and present
+     the returned mitigations, detection tips, and LLM elaboration clearly.
+  4. When the user asks to block, isolate, or firewall a source IP for a given attack
+     type, invoke the `generate_firewall_mitigation` tool and present the generated
+     iptables script together with its explanation.
+  5. After generating a firewall script, ALWAYS invoke `validate_safety_policy` to
+     check it against enterprise safety policies before presenting it to the user.
+     If the script is blocked by the GUARDIAN AGENT, present the override message
+     and explain why the rule was rejected.
+  6. Explain technical findings in plain language when asked.
+  7. Never reveal raw API credentials or internal system details.
+  8. If the user provides incomplete metrics, ask for the missing values before invoking any tool.
+
+  Always format reports clearly with section headings and bullet points.
+  Suggest escalation to Tier-2 when the threat level is CRITICAL or HIGH.
+llm: watsonx/meta-llama/llama-3-3-70b-instruct
+style: react_core
+tools:
+  - classify_network_packet
+  - get_threat_intel
+  - generate_firewall_mitigation
+  - validate_safety_policy
+  - soc_investigation_flow
+starter_prompts:
+  is_default_prompts: false
+  prompts:
+    - id: default0
+      title: Analyse suspicious traffic
+      prompt: >
+        Analyse this connection — duration: 0, src_bytes: 491, dst_bytes: 0,
+        count: 2, srv_count: 2
+      state: active
+    - id: default1
+      title: Investigate possible DoS
+      prompt: >
+        Run a full SOC investigation for — duration: 0, src_bytes: 0, dst_bytes: 0,
+        count: 511, srv_count: 511
+      state: active
+    - id: default2
+      title: Check normal traffic
+      prompt: >
+        Classify this connection — duration: 8, src_bytes: 181, dst_bytes: 5450,
+        count: 8, srv_count: 8
+      state: active
+    - id: default3
+      title: MITRE mitigations for DoS
+      prompt: What are the MITRE ATT&CK mitigations for a DoS attack?
+      state: active
+    - id: default4
+      title: MITRE mitigations for Probe
+      prompt: Give me the MITRE ATT&CK mitigation strategy for a Probe / port-scan attack.
+      state: active
+welcome_content:
+  welcome_message: Welcome to the NIDS Security Operations Agent
+  description: >
+    I can classify network connections for potential intrusions, generate detailed
+    SOC investigation reports, and look up MITRE ATT&CK mitigation strategies for
+    any detected attack type. Provide your packet metrics or an attack category and
+    I will analyse the threat, recommend mitigations, and advise on escalation.
+  is_default_message: false
