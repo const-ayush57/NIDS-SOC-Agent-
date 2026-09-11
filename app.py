@@ -9,16 +9,32 @@ load_dotenv()
 
 # --- Configuration ---
 st.set_page_config(page_title="NIDS SOC Agent", page_icon="🛡️", layout="wide")
-API_KEY = os.getenv("IBM_API_KEY") or os.getenv("WATSONX_API_KEY")
-PROJECT_ID = os.getenv("WATSONX_PROJECT_ID", "b5711429-279d-45a1-a962-8db58d7bee19")
+
+# --- Helper to load from Streamlit Secrets or Environment ---
+def get_secret(key: str, default=None):
+    try:
+        if key in st.secrets:
+            return st.secrets[key]
+    except Exception:
+        pass
+    return os.getenv(key, default)
+
+API_KEY = get_secret("IBM_API_KEY") or get_secret("WATSONX_API_KEY")
+PROJECT_ID = get_secret("WATSONX_PROJECT_ID", "b5711429-279d-45a1-a962-8db58d7bee19")
 
 # --- IBM Watsonx Integration ---
 def get_iam_token(api_key: str) -> str:
+    if not api_key:
+        raise ValueError("IBM API Key is not configured. Please add 'IBM_API_KEY' to Streamlit Cloud Secrets (in Settings -> Secrets) or in your local .env file.")
     iam_url = "https://iam.cloud.ibm.com/identity/token"
     data = urllib.parse.urlencode({"grant_type": "urn:ibm:params:oauth:grant-type:apikey", "apikey": api_key}).encode("utf-8")
     req = urllib.request.Request(iam_url, data=data, headers={"Content-Type": "application/x-www-form-urlencoded"}, method="POST")
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        return json.loads(resp.read().decode("utf-8"))["access_token"]
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read().decode("utf-8"))["access_token"]
+    except urllib.error.HTTPError as e:
+        err_msg = e.read().decode("utf-8", errors="ignore")
+        raise RuntimeError(f"IBM IAM Authentication failed ({e.code}): {err_msg}") from e
 
 def ask_ibm_watsonx(user_input: str) -> str:
     token = get_iam_token(API_KEY)
