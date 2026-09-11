@@ -1,5 +1,10 @@
 # NIDS – Network Intrusion Detection System (watsonx Orchestrate)
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://nidsknjvufpublsblzwaupmgypx.streamlit.app/)
+[![IBM watsonx.ai](https://img.shields.io/badge/Powered%20By-IBM%20watsonx.ai-blue.svg)](https://www.ibm.com/products/watsonx-ai)
+
+> 🚀 **Live Interactive Demo:** [https://nidsknjvufpublsblzwaupmgypx.streamlit.app/](https://nidsknjvufpublsblzwaupmgypx.streamlit.app/)
+
 ## Overview
 
 This project implements a **Network Intrusion Detection System (NIDS)** as a watsonx Orchestrate native agent solution. It combines an IBM watsonx.ai Llama-3-70B classifier with a structured SOC investigation flow to detect, triage, and report on potential network intrusions in real time.
